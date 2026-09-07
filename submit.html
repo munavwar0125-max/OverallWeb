@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Review Submissions</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+    }
+    h2 { margin-bottom: 4px; }
+    p.sub { color: #666; margin-top: 0; }
+    #login-box { margin-top: 30px; }
+    #login-box input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    #login-box button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: #6b21a8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    #login-error { color: red; margin-top: 8px; }
+    #admin-panel { display: none; }
+    .project-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .project-card h3 { margin: 0 0 6px 0; }
+    .project-card .meta { color: #666; font-size: 14px; margin-bottom: 8px; }
+    .project-card a { word-break: break-all; }
+    .btn-row { margin-top: 12px; }
+    .btn-row button {
+      padding: 8px 16px;
+      margin-right: 8px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn-approve { background: #16a34a; color: white; }
+    .btn-reject { background: #dc2626; color: white; }
+    #refresh-btn {
+      margin-top: 20px;
+      padding: 8px 16px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="login-box">
+    <h2>Admin Login</h2>
+    <p class="sub">Enter the admin password to review submissions.</p>
+    <input type="password" id="password-input" placeholder="Password">
+    <button id="login-btn">Login</button>
+    <p id="login-error"></p>
+  </div>
+
+  <div id="admin-panel">
+    <h2>Pending Submissions</h2>
+    <p class="sub">Review each project, then approve or reject it.</p>
+    <button id="refresh-btn">Refresh List</button>
+    <div id="pending-list">Loading...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const ADMIN_PASSWORD = "CHANGE_THIS_PASSWORD";
+
+    const SUPABASE_URL = "https://cppdsvlywsxordummnzd.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_kkV5dPvXAfJa39lulMa-cg_sFeRZR-F";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const loginBox = document.getElementById("login-box");
+    const adminPanel = document.getElementById("admin-panel");
+    const loginBtn = document.getElementById("login-btn");
+    const passwordInput = document.getElementById("password-input");
+    const loginError = document.getElementById("login-error");
+    const pendingList = document.getElementById("pending-list");
+    const refreshBtn = document.getElementById("refresh-btn");
+
+    loginBtn.addEventListener("click", function () {
+      if (passwordInput.value === ADMIN_PASSWORD) {
+        loginBox.style.display = "none";
+        adminPanel.style.display = "block";
+        loadPending();
+      } else {
+        loginError.textContent = "Incorrect password.";
+      }
+    });
+
+    refreshBtn.addEventListener("click", loadPending);
+
+    async function loadPending() {
+      pendingList.innerHTML = "Loading...";
+
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        pendingList.innerHTML = "<p>Error loading submissions: " + error.message + "</p>";
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        pendingList.innerHTML = "<p>No pending submissions right now.</p>";
+        return;
+      }
+
+      pendingList.innerHTML = "";
+      data.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "project-card";
+        card.innerHTML = `
+          <h3>${escapeHtml(p.title)}</h3>
+          <div class="meta">
+            Category: ${escapeHtml(p.category)} |
+            Submitted by: ${escapeHtml(p.submitter_name || "Anonymous")}
+            ${p.submitter_email ? " (" + escapeHtml(p.submitter_email) + ")" : ""}
+          </div>
+          <p>${escapeHtml(p.description)}</p>
+          <a href="${p.link}" target="_blank">${escapeHtml(p.link)}</a>
+          <div class="btn-row">
+            <button class="btn-approve" data-id="${p.id}">Approve</button>
+            <button class="btn-reject" data-id="${p.id}">Reject</button>
+          </div>
+        `;
+        pendingList.appendChild(card);
+      });
+
+      document.querySelectorAll(".btn-approve").forEach(btn => {
+        btn.addEventListener("click", () => updateStatus(btn.dataset.id, "approved"));
+      });
+      document.querySelectorAll(".btn-reject").forEach(btn => {
+        btn.addEventListener("click", () => updateStatus(btn.dataset.id, "rejected"));
+      });
+    }
+
+    async function updateStatus(id, newStatus) {
+      const { error } = await supabase
+        .from("projects")
+        .update({ status: newStatus })
+        .eq("id", id);
+
+      if (error) {
+        alert("Error updating: " + error.message);
+        return;
+      }
+
+      loadPending();
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>
