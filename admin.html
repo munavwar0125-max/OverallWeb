@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Submit a Project</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #222;
+    }
+    h2 { margin-bottom: 4px; }
+    p.sub { color: #666; margin-top: 0; }
+    label {
+      display: block;
+      margin-top: 16px;
+      font-weight: bold;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #6b21a8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    #status-msg {
+      margin-top: 16px;
+      font-weight: bold;
+    }
+    .hp-field {
+      position: absolute;
+      left: -9999px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Submit a Project</h2>
+  <p class="sub">Share something you built — it'll be reviewed before going live.</p>
+
+  <form id="submit-form">
+    <label for="title">Project Title *</label>
+    <input type="text" id="title" required>
+
+    <label for="description">Description *</label>
+    <textarea id="description" required></textarea>
+
+    <label for="link">Project Link (URL) *</label>
+    <input type="url" id="link" placeholder="https://..." required>
+
+    <label for="category">Category *</label>
+    <select id="category" required>
+      <option value="">-- Select --</option>
+      <option value="tools">Tools</option>
+      <option value="animations">Animations</option>
+      <option value="games">Games</option>
+      <option value="others">Others</option>
+    </select>
+
+    <label for="submitter_name">Your Name (optional)</label>
+    <input type="text" id="submitter_name">
+
+    <label for="submitter_email">Your Email (optional)</label>
+    <input type="email" id="submitter_email">
+
+    <div class="hp-field">
+      <label for="website">Leave this blank</label>
+      <input type="text" id="website">
+    </div>
+
+    <button type="submit">Submit Project</button>
+    <p id="status-msg"></p>
+  </form>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://cppdsvlywsxordummnzd.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_kkV5dPvXAfJa39lulMa-cg_sFeRZR-F";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const form = document.getElementById("submit-form");
+    const statusMsg = document.getElementById("status-msg");
+
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      statusMsg.style.color = "#222";
+      statusMsg.textContent = "Submitting...";
+
+      const honeypot = document.getElementById("website").value;
+      if (honeypot) {
+        statusMsg.style.color = "green";
+        statusMsg.textContent = "Thanks! Your project was submitted for review.";
+        form.reset();
+        return;
+      }
+
+      const newProject = {
+        title: document.getElementById("title").value.trim(),
+        description: document.getElementById("description").value.trim(),
+        link: document.getElementById("link").value.trim(),
+        category: document.getElementById("category").value,
+        submitter_name: document.getElementById("submitter_name").value.trim() || null,
+        submitter_email: document.getElementById("submitter_email").value.trim() || null,
+        status: "pending"
+      };
+
+      try {
+        const { error } = await supabase.from("projects").insert([newProject]);
+
+        if (error) {
+          statusMsg.style.color = "red";
+          statusMsg.textContent = "Error: " + error.message;
+          return;
+        }
+
+        statusMsg.style.color = "green";
+        statusMsg.textContent = "Thanks! Your project was submitted for review.";
+        form.reset();
+      } catch (err) {
+        statusMsg.style.color = "red";
+        statusMsg.textContent = "Something went wrong: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
