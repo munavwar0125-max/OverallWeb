@@ -21,6 +21,61 @@ Web development games are </ul>
 </ul>
 </div>
 
-</div>
+<div>
+   <!-- Community-submitted projects show up here -->
+    <div id="heading"><h2>Community Submitted Tools</h2></div>
+    <div id="user-projects">
+      <p id="loading-msg">Loading...</p>
+    </div>
+
+    <!-- Link to the submission page (we'll build this next) -->
+    <p><a href="../submit.html">➕ Submit your own project</a></p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "PASTE_YOUR_PROJECT_URL_HERE";
+    const SUPABASE_KEY = "PASTE_YOUR_PUBLISHABLE_KEY_HERE";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function loadProjects() {
+      const container = document.getElementById("user-projects");
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("category", "tools")
+        .eq("status", "approved")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        container.innerHTML = "<p>Couldn't load projects right now.</p>";
+        console.error(error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        container.innerHTML = "<p>No community projects yet — be the first!</p>";
+        return;
+      }
+
+      container.innerHTML = "";
+      const list = document.createElement("ul");
+      data.forEach(p => {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        a.href = p.link;
+        a.target = "_blank";
+        a.textContent = p.title;
+        li.appendChild(a);
+        if (p.submitter_name) {
+          li.appendChild(document.createTextNode(" — by " + p.submitter_name));
+        }
+        list.appendChild(li);
+      });
+      container.appendChild(list);
+    }
+
+    loadProjects();
+  </script>
 </body>
 </html>
