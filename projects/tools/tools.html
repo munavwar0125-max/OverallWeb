@@ -35,59 +35,44 @@ Web development games are </ul>
    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <div id="admin-container"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
   const SUPABASE_URL = "https://cppdsvlywsxordummnzd.supabase.co";
   const SUPABASE_KEY = "sb_publishable_kkV5dPvXAfJa39lulMa-cg_sFeRZR-F";
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  async function loadPending() {
-    const container = document.getElementById("admin-container");
-    container.innerHTML = "<p>Loading...</p>";
+  async function loadToolsProjects() {
+    const container = document.getElementById("user-projects");
 
     const { data, error } = await supabase
       .from("submissions")
       .select("*")
-      .eq("status", "pending")
+      .eq("category", "tools")
+      .eq("status", "approved")
       .order("created_at", { ascending: false });
 
     if (error) {
-      container.innerHTML = "<p>Error loading submissions.</p>";
+      container.innerHTML = "<p>Couldn't load projects right now.</p>";
       console.error(error);
       return;
     }
 
     if (!data || data.length === 0) {
-      container.innerHTML = "<p>No pending submissions.</p>";
+      container.innerHTML = "<p>No community projects yet — be the first to submit!</p>";
       return;
     }
 
-    container.innerHTML = data.map(item => `
-      <div class="admin-card" data-id="${item.id}">
-        <h3>${item.title}</h3>
-        <p>${item.description}</p>
-        <p><a href="${item.link}" target="_blank">${item.link}</a></p>
-        <p>Category: ${item.category}</p>
-        <button onclick="updateStatus(${item.id}, 'approved')">Approve</button>
-        <button onclick="updateStatus(${item.id}, 'rejected')">Reject</button>
+    container.innerHTML = data.map(project => `
+      <div class="project-card">
+        <h3>${project.title}</h3>
+        <p>${project.description}</p>
+        <a href="${project.link}" target="_blank">View Project</a>
       </div>
     `).join("");
   }
 
-  async function updateStatus(id, newStatus) {
-    const { error } = await supabase
-      .from("submissions")
-      .update({ status: newStatus })
-      .eq("id", id);
-
-    if (error) {
-      alert("Failed to update status.");
-      console.error(error);
-      return;
-    }
-    loadPending(); // refresh list
-  }
-
-  loadPending();
-    </script>
+  loadToolsProjects();
+</script>
 </body>
 </html>
