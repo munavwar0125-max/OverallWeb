@@ -33,56 +33,61 @@ Web development games are </ul>
   </div>
 
    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<div id="admin-container"></div>
+
 <script>
-  try {
-    const SUPABASE_URL = "https://cppdsvlywsxordummnzd.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_kkV5dPvXAfJa39lulMa-cg_sFeRZR-F";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const SUPABASE_URL = "https://cppdsvlywsxordummnzd.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_kkV5dPvXAfJa39lulMa-cg_sFeRZR-F";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    async function loadProjects() {
-      const container = document.getElementById("user-projects");
-      try {
-        const { data, error } = await supabase
-          .from("projects")
-          .select("*")
-          .eq("category", "tools")
-          .eq("status", "approved")
-          .order("created_at", { ascending: false });
+  async function loadPending() {
+    const container = document.getElementById("admin-container");
+    container.innerHTML = "<p>Loading...</p>";
 
-        if (error) {
-          container.innerHTML = "<p>Error: " + error.message + "</p>";
-          return;
-        }
+    const { data, error } = await supabase
+      .from("submissions")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
 
-        if (!data || data.length === 0) {
-          container.innerHTML = "<p>No community projects yet — be the first!</p>";
-          return;
-        }
-
-        container.innerHTML = "";
-        const list = document.createElement("ul");
-        data.forEach(p => {
-          const li = document.createElement("li");
-          const a = document.createElement("a");
-          a.href = p.link;
-          a.target = "_blank";
-          a.textContent = p.title;
-          li.appendChild(a);
-          if (p.submitter_name) {
-            li.appendChild(document.createTextNode(" — by " + p.submitter_name));
-          }
-          list.appendChild(li);
-        });
-        container.appendChild(list);
-      } catch (err) {
-        container.innerHTML = "<p>Script error: " + err.message + "</p>";
-      }
+    if (error) {
+      container.innerHTML = "<p>Error loading submissions.</p>";
+      console.error(error);
+      return;
     }
 
-    loadProjects();
-  } catch (outerErr) {
-    document.getElementById("user-projects").innerHTML = "<p>Setup error: " + outerErr.message + "</p>";
+    if (!data || data.length === 0) {
+      container.innerHTML = "<p>No pending submissions.</p>";
+      return;
+    }
+
+    container.innerHTML = data.map(item => `
+      <div class="admin-card" data-id="${item.id}">
+        <h3>${item.title}</h3>
+        <p>${item.description}</p>
+        <p><a href="${item.link}" target="_blank">${item.link}</a></p>
+        <p>Category: ${item.category}</p>
+        <button onclick="updateStatus(${item.id}, 'approved')">Approve</button>
+        <button onclick="updateStatus(${item.id}, 'rejected')">Reject</button>
+      </div>
+    `).join("");
   }
-          </script>'
+
+  async function updateStatus(id, newStatus) {
+    const { error } = await supabase
+      .from("submissions")
+      .update({ status: newStatus })
+      .eq("id", id);
+
+    if (error) {
+      alert("Failed to update status.");
+      console.error(error);
+      return;
+    }
+    loadPending(); // refresh list
+  }
+
+  loadPending();
+    </script>
 </body>
 </html>
