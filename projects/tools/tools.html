@@ -32,50 +32,57 @@ Web development games are </ul>
     <p><a href="../submit.html">➕ Submit your own project</a></p>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  try {
     const SUPABASE_URL = "https://cppdsvlywsxordummnzd.supabase.co";
     const SUPABASE_KEY = "sb_publishable_kkV5dPvXAfJa39lulMa-cg_sFeRZR-F";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     async function loadProjects() {
       const container = document.getElementById("user-projects");
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("category", "tools")
-        .eq("status", "approved")
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .select("*")
+          .eq("category", "tools")
+          .eq("status", "approved")
+          .order("created_at", { ascending: false });
 
-      if (error) {
-        container.innerHTML = "<p>Couldn't load projects right now.</p>";
-        console.error(error);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        container.innerHTML = "<p>No community projects yet — be the first!</p>";
-        return;
-      }
-
-      container.innerHTML = "";
-      const list = document.createElement("ul");
-      data.forEach(p => {
-        const li = document.createElement("li");
-        const a = document.createElement("a");
-        a.href = p.link;
-        a.target = "_blank";
-        a.textContent = p.title;
-        li.appendChild(a);
-        if (p.submitter_name) {
-          li.appendChild(document.createTextNode(" — by " + p.submitter_name));
+        if (error) {
+          container.innerHTML = "<p>Error: " + error.message + "</p>";
+          return;
         }
-        list.appendChild(li);
-      });
-      container.appendChild(list);
+
+        if (!data || data.length === 0) {
+          container.innerHTML = "<p>No community projects yet — be the first!</p>";
+          return;
+        }
+
+        container.innerHTML = "";
+        const list = document.createElement("ul");
+        data.forEach(p => {
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.href = p.link;
+          a.target = "_blank";
+          a.textContent = p.title;
+          li.appendChild(a);
+          if (p.submitter_name) {
+            li.appendChild(document.createTextNode(" — by " + p.submitter_name));
+          }
+          list.appendChild(li);
+        });
+        container.appendChild(list);
+      } catch (err) {
+        container.innerHTML = "<p>Script error: " + err.message + "</p>";
+      }
     }
 
     loadProjects();
-  </script>
+  } catch (outerErr) {
+    document.getElementById("user-projects").innerHTML = "<p>Setup error: " + outerErr.message + "</p>";
+  }
+          </script>
 </body>
 </html>
