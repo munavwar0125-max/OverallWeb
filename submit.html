@@ -3,180 +3,139 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Review Submissions</title>
+  <title>Submit a Project</title>
   <style>
     body {
       font-family: sans-serif;
-      max-width: 700px;
+      max-width: 500px;
       margin: 40px auto;
       padding: 0 20px;
       color: #222;
     }
     h2 { margin-bottom: 4px; }
     p.sub { color: #666; margin-top: 0; }
-    #login-box { margin-top: 30px; }
-    #login-box input {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      box-sizing: border-box;
+    label {
+      display: block;
+      margin-top: 16px;
+      font-weight: bold;
     }
-    #login-box button {
-      margin-top: 10px;
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    button {
+      margin-top: 20px;
       padding: 10px 20px;
+      font-size: 16px;
       background: #6b21a8;
       color: white;
       border: none;
       border-radius: 4px;
-      font-size: 16px;
     }
-    #login-error { color: red; margin-top: 8px; }
-    #admin-panel { display: none; }
-    .project-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 16px;
+    #status-msg {
       margin-top: 16px;
+      font-weight: bold;
     }
-    .project-card h3 { margin: 0 0 6px 0; }
-    .project-card .meta { color: #666; font-size: 14px; margin-bottom: 8px; }
-    .project-card a { word-break: break-all; }
-    .btn-row { margin-top: 12px; }
-    .btn-row button {
-      padding: 8px 16px;
-      margin-right: 8px;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .btn-approve { background: #16a34a; color: white; }
-    .btn-reject { background: #dc2626; color: white; }
-    #refresh-btn {
-      margin-top: 20px;
-      padding: 8px 16px;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 4px;
+    /* honeypot field - hidden from real users, bots often fill it in */
+    .hp-field {
+      position: absolute;
+      left: -9999px;
     }
   </style>
 </head>
 <body>
+  <h2>Submit a Project</h2>
+  <p class="sub">Share something you built — it goes live on the site right away.</p>
 
-  <div id="login-box">
-    <h2>Admin Login</h2>
-    <p class="sub">Enter the admin password to review submissions.</p>
-    <input type="password" id="password-input" placeholder="Password">
-    <button id="login-btn">Login</button>
-    <p id="login-error"></p>
-  </div>
+  <form id="submit-form">
+    <label for="title">Project Title *</label>
+    <input type="text" id="title" required>
 
-  <div id="admin-panel">
-    <h2>Pending Submissions</h2>
-    <p class="sub">Review each project, then approve or reject it.</p>
-    <button id="refresh-btn">Refresh List</button>
-    <div id="pending-list">Loading...</div>
-  </div>
+    <label for="description">Description *</label>
+    <textarea id="description" required></textarea>
+
+    <label for="link">Project Link (URL) *</label>
+    <input type="url" id="link" placeholder="https://..." required>
+
+    <label for="category">Category *</label>
+    <select id="category" required>
+      <option value="">-- Select --</option>
+      <option value="tools">Tools</option>
+      <option value="animations">Animations</option>
+      <option value="games">Games</option>
+      <option value="others">Others</option>
+    </select>
+
+    <label for="submitter_name">Your Name (optional)</label>
+    <input type="text" id="submitter_name">
+
+    <label for="submitter_email">Your Email (optional)</label>
+    <input type="email" id="submitter_email">
+
+    <!-- Honeypot: real users never see or fill this. Bots often do. -->
+    <div class="hp-field">
+      <label for="website">Leave this blank</label>
+      <input type="text" id="website">
+    </div>
+
+    <button type="submit">Submit Project</button>
+    <p id="status-msg"></p>
+  </form>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const ADMIN_PASSWORD = "CHANGE_THIS_PASSWORD";
-
     const SUPABASE_URL = "https://cppdsvlywsxordummnzd.supabase.co";
     const SUPABASE_KEY = "sb_publishable_kkV5dPvXAfJa39lulMa-cg_sFeRZR-F";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const loginBox = document.getElementById("login-box");
-    const adminPanel = document.getElementById("admin-panel");
-    const loginBtn = document.getElementById("login-btn");
-    const passwordInput = document.getElementById("password-input");
-    const loginError = document.getElementById("login-error");
-    const pendingList = document.getElementById("pending-list");
-    const refreshBtn = document.getElementById("refresh-btn");
+    const form = document.getElementById("submit-form");
+    const statusMsg = document.getElementById("status-msg");
 
-    loginBtn.addEventListener("click", function () {
-      if (passwordInput.value === ADMIN_PASSWORD) {
-        loginBox.style.display = "none";
-        adminPanel.style.display = "block";
-        loadPending();
-      } else {
-        loginError.textContent = "Incorrect password.";
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      statusMsg.style.color = "#222";
+      statusMsg.textContent = "Submitting...";
+
+      // Honeypot check - if this hidden field has a value, silently pretend success
+      const honeypot = document.getElementById("website").value;
+      if (honeypot) {
+        statusMsg.style.color = "green";
+        statusMsg.textContent = "Thanks! Your project is now live.";
+        form.reset();
+        return;
+      }
+
+      const newProject = {
+        title: document.getElementById("title").value.trim(),
+        description: document.getElementById("description").value.trim(),
+        link: document.getElementById("link").value.trim(),
+        category: document.getElementById("category").value,
+        submitter_name: document.getElementById("submitter_name").value.trim() || null,
+        submitter_email: document.getElementById("submitter_email").value.trim() || null,
+        status: "approved"
+      };
+
+      try {
+        const { error } = await supabase.from("projects").insert([newProject]);
+
+        if (error) {
+          statusMsg.style.color = "red";
+          statusMsg.textContent = "Error: " + error.message;
+          return;
+        }
+
+        statusMsg.style.color = "green";
+        statusMsg.textContent = "Thanks! Your project is now live.";
+        form.reset();
+      } catch (err) {
+        statusMsg.style.color = "red";
+        statusMsg.textContent = "Something went wrong: " + err.message;
       }
     });
-
-    refreshBtn.addEventListener("click", loadPending);
-
-    async function loadPending() {
-      pendingList.innerHTML = "Loading...";
-
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        pendingList.innerHTML = "<p>Error loading submissions: " + error.message + "</p>";
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        pendingList.innerHTML = "<p>No pending submissions right now.</p>";
-        return;
-      }
-
-      pendingList.innerHTML = "";
-      data.forEach(p => {
-        const card = document.createElement("div");
-        card.className = "project-card";
-        card.innerHTML = `
-          <h3>${escapeHtml(p.title)}</h3>
-          <div class="meta">
-            Category: ${escapeHtml(p.category)} |
-            Submitted by: ${escapeHtml(p.submitter_name || "Anonymous")}
-            ${p.submitter_email ? " (" + escapeHtml(p.submitter_email) + ")" : ""}
-          </div>
-          <p>${escapeHtml(p.description)}</p>
-          <a href="${p.link}" target="_blank">${escapeHtml(p.link)}</a>
-          <div class="btn-row">
-            <button class="btn-approve" data-id="${p.id}">Approve</button>
-            <button class="btn-reject" data-id="${p.id}">Reject</button>
-          </div>
-        `;
-        pendingList.appendChild(card);
-      });
-
-      document.querySelectorAll(".btn-approve").forEach(btn => {
-        btn.addEventListener("click", () => updateStatus(btn.dataset.id, "approved"));
-      });
-      document.querySelectorAll(".btn-reject").forEach(btn => {
-        btn.addEventListener("click", () => updateStatus(btn.dataset.id, "rejected"));
-      });
-    }
-
-    async function updateStatus(id, newStatus) {
-      const { error } = await supabase
-        .from("projects")
-        .update({ status: newStatus })
-        .eq("id", id);
-
-      if (error) {
-        alert("Error updating: " + error.message);
-        return;
-      }
-
-      loadPending();
-    }
-
-    function escapeHtml(str) {
-      if (!str) return "";
-      return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-    }
   </script>
 </body>
 </html>
