@@ -87,55 +87,40 @@
   </form>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const SUPABASE_URL = "https://cppdsvlywsxordummnzd.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_kkV5dPvXAfJa39lulMa-cg_sFeRZR-F";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<script>
+  const SUPABASE_URL = "https://cppdsvlywsxordummnzd.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_kkV5dPvXAfJa39lulMa-cg_sFeRZR-F";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const form = document.getElementById("submit-form");
-    const statusMsg = document.getElementById("status-msg");
+  const form = document.getElementById("submit-form");
+  const statusMsg = document.getElementById("status-msg");
 
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
-      statusMsg.style.color = "#222";
-      statusMsg.textContent = "Submitting...";
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    statusMsg.style.color = "#222";
+    statusMsg.textContent = "Submitting...";
 
-      // Honeypot check - if this hidden field has a value, silently pretend success
-      const honeypot = document.getElementById("website").value;
-      if (honeypot) {
-        statusMsg.style.color = "green";
-        statusMsg.textContent = "Thanks! Your project is now live.";
-        form.reset();
-        return;
-      }
+    const newProject = {
+      title: document.getElementById("title").value.trim(),
+      description: document.getElementById("description").value.trim(),
+      link: document.getElementById("link").value.trim(),
+      category: document.getElementById("category").value,
+      submitter_name: document.getElementById("submitter_name").value.trim() || null,
+      submitter_email: document.getElementById("submitter_email").value.trim() || null,
+      status: "approved"
+    };
 
-      const newProject = {
-        title: document.getElementById("title").value.trim(),
-        description: document.getElementById("description").value.trim(),
-        link: document.getElementById("link").value.trim(),
-        category: document.getElementById("category").value,
-        submitter_name: document.getElementById("submitter_name").value.trim() || null,
-        submitter_email: document.getElementById("submitter_email").value.trim() || null,
-        status: "approved"
-      };
+    const { data, error } = await supabase.from("projects").insert([newProject]).select();
 
-      try {
-        const { error } = await supabase.from("projects").insert([newProject]);
+    if (error) {
+      statusMsg.style.color = "red";
+      statusMsg.textContent = "DB ERROR: " + error.message + " (code: " + error.code + ")";
+      return;
+    }
 
-        if (error) {
-          statusMsg.style.color = "red";
-          statusMsg.textContent = "Error: " + error.message;
-          return;
-        }
-
-        statusMsg.style.color = "green";
-        statusMsg.textContent = "Thanks! Your project is now live.";
-        form.reset();
-      } catch (err) {
-        statusMsg.style.color = "red";
-        statusMsg.textContent = "Something went wrong: " + err.message;
-      }
-    });
-  </script>
+    statusMsg.style.color = "green";
+    statusMsg.textContent = "Saved! Returned: " + JSON.stringify(data);
+  });
+</script>
 </body>
 </html>
