@@ -14,6 +14,27 @@ img {
   object-fit: cover;    /* fills div, crops overflow, keeps aspect ratio */
 }
 
+.upload-section {
+  text-align: center;
+  margin: 30px 0;
+}
+
+#upload-btn {
+  display: inline-block;
+  padding: 14px 28px;
+  background: #6b21a8;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+#upload-btn:hover {
+  background: #581c87;
+}
+
 #logo{
   margin: 5px ;
   border: 2px solid grey;
